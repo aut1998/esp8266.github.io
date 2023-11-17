@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Humidity & Time Display57</title>
+    <script src="https://www.gstatic.com/firebasejs/7.17.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.17.1/firebase-database.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        #H_1 {
+            padding-top: 2px;
+            color: #7FE1E1;
+            font-size: 35px;
+            font-family: Arial, Helvetica, sans-serif;
+            text-align: center;
+        }
+
+        .transparent-box {
+            width: 500px;
+            height: 450px;
+            background-color: rgba(102, 174, 222, 0.5);
+            padding: 20px;
+            border-radius: 17px;
+        }
+    </style>
+</head>
+<body style="background-image: url(wallpaper.png); background-size: 100%;">
+    <div style="display: flex; justify-content: center; align-items: center; height: 100vh;">
+        <div class="transparent-box">
+            <div class="content">
+                <center>
+                    <h1>Humidity & Time Display</h1>
+                    <p id="humidity">Humidity: Loading...</p>
+                    <p></p>
+                    <p id="Solenoid">Solenoid: Loading...</p>
+                    <p></p>
+                    <p id="time">Current Time: Loading...</p>
+                    <p></p>
+                    <p id="set_time">Set Time: Loading...</p>
+
+                    <label for="timeInput">Set Time:</label>
+                    <input type="time" id="timeInput" placeholder="Select time">
+                    <button id="saveTimeButton">Save Time</button><br><br>
+
+                    <label for="boardSelect">Choose Board:</label>
+                    <select id="boardSelect">
+                        <option value="Select">Select</option>
+                        <option value="board 1st">board 1st</option>
+                        <option value="board 2nd">board 2nd</option>
+                    </select>
+                    <br><br>
+
+                    <br><br>
+                </center>
+                <script>
+                    const firebaseConfig = {
+                        apiKey: "AIzaSyAZYMchGmLJoDj3YDOuTyZvERlI2pvm7Vs",
+                        authDomain: "esp8266-934e5.firebaseapp.com",
+                        databaseURL: "https://esp8266-934e5-default-rtdb.firebaseio.com",
+                        projectId: "esp8266-934e5",
+                        storageBucket: "esp8266-934e5.appspot.com",                        
+                        };
+
+                    // Initialize Firebase
+                    firebase.initializeApp(firebaseConfig);
+                    const db = firebase.database();
+
+                    // Function to update humidity value based on Firebase data
+                    function updateHumidity() {
+                        const humidityElement = document.querySelector('#humidity');
+                        const SolenoidV = document.querySelector('#Solenoid');
+                        const set_time_E =document.querySelector('#set_time')
+                        const selectedBoard = document.querySelector('#boardSelect').value;
+                        if ( selectedBoard != "Select")
+                        {
+                            db.ref(selectedBoard+"/HUM").once('value', (snapshot) => {
+                                const humidityValue = snapshot.val();
+                                humidityElement.textContent = `Humidity: ${humidityValue}%`;
+                            });
+                            db.ref(selectedBoard+"/SW").once('value', (snapshot) => {
+                                if ( snapshot.val() == "1" ) {SolenoidV.textContent = `Solenoid: ON`;} 
+                                else { SolenoidV.textContent = `Solenoid: OFF`;}
+                            });
+                            db.ref(selectedBoard+"/time").once('value', (snapshot) => {
+                                const set_time_Value = snapshot.val();
+                                set_time_E.textContent = `Set Time: ${set_time_Value}`;
+                            });
+                        }
+                                               
+                        
+                    }
+
+                    // Function to update current time
+                    function updateTime() {
+                        const timeElement = document.querySelector('#time');
+                        const currentTime = new Date();
+                        const hours = currentTime.getHours();
+                        const minutes = currentTime.getMinutes();
+                        const seconds = currentTime.getSeconds();
+                        const formattedTime = `Current Time: ${hours}:${minutes}:${seconds}`;
+                        timeElement.textContent = formattedTime;
+                    }
+
+                    function saveTimeToFirebase() {
+                        const timeInput = document.querySelector('#timeInput').value;
+                        const selectedBoard = document.querySelector('#boardSelect').value;
+                        
+                        if ( selectedBoard != "Select"){
+
+                            const ref = db.ref(selectedBoard ); // สร้าง reference ไปยังโหนดที่ต้องการอัปเดต
+
+                            ref.update({
+                                time: timeInput
+                            })
+                            .then(() => {
+                                console.log("Data updated successfully!");
+                            })
+                            .catch((error) => {
+                                console.error("Error updating data:", error);
+                            });
+                                    }   
+                    }
+
+                        
+                    function confirmBoard() {
+                        const selectedBoard = document.querySelector('#boardSelect').value;
+                        console.log(`Board ${selectedBoard} confirmed!`);
+                        // Add your logic here for what to do after board confirmation
+                    }
+
+                    // Function to reset all data
+                    function resetAllData() {
+                        const selectedBoard = document.querySelector('#boardSelect').value;
+                        db.ref(selectedBoard).remove();
+                        console.log(`Data for Board ${selectedBoard} has been reset!`);
+                    }
+
+                    // Function to clear input field
+                    function clearInput() {
+                        document.querySelector('#timeInput').value = ''; // Clears the input field
+                    }
+
+                    document.addEventListener('DOMContentLoaded', function() {
+                        updateHumidity(); // Initial call to fetch and display humidity
+                        updateTime(); // Initial call to display current time
+
+                        setInterval(updateHumidity, 400); // Update humidity every 5 seconds
+                        setInterval(updateTime, 1000); // Update time every second
+
+                        const saveTimeButton = document.querySelector('#saveTimeButton');
+                        saveTimeButton.addEventListener('click', saveTimeToFirebase);
+
+                        const resetDataButton = document.querySelector('#resetDataButton');
+                        resetDataButton.addEventListener('click', resetAllData);
+
+                        const confirmBoardButton = document.querySelector('#confirmBoardButton');
+                        confirmBoardButton.addEventListener('click', confirmBoard);
+                        
+                        const clearInputButton = document.querySelector('#clearInputButton');
+                        clearInputButton.addEventListener('click', clearInput); // Event listener for clear input button
+                    });
+                </script>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
